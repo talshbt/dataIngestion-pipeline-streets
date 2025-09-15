@@ -1,5 +1,6 @@
 package org.example.dataingestionstreets.controller;
 
+import lombok.AllArgsConstructor;
 import org.example.dataingestionstreets.model.Street;
 import org.example.dataingestionstreets.service.StreetsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,16 +9,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-
+@AllArgsConstructor
 @RestController
 public class StreetController {
 
     private final StreetsService streetsService;
-
-    @Autowired
-    public StreetController(StreetsService streetsService) {
-        this.streetsService = streetsService;
-    }
 
     @GetMapping("/")
     public String home() {
