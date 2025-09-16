@@ -1,5 +1,7 @@
 package org.example.dataingestionstreets.service;
 
+import lombok.AllArgsConstructor;
+import org.example.dataingestionstreets.model.Cities;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -14,11 +16,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@AllArgsConstructor
 @Service
 public class StreetsService {
-
     private final RestTemplate restTemplate;
-//    private final CitiesService citiesService;
+
+    //    private final CitiesService citiesService;
     private static final String RESOURCE_ID = "1b14e41c-85b3-4c21-bdce-9fe48185ffca";
     private static final String API_URL = "https://data.gov.il/api/3/action/datastore_search";
     private static final Map<String, String> hebrewToEnglishCityNames = new HashMap<>();
@@ -31,16 +34,22 @@ public class StreetsService {
         // hebrewToEnglishCityNames.put("חיפה", "Haifa");
     }
 
-    public StreetsService() {
-        this.restTemplate = new RestTemplate();
-    }
+//    public StreetsService() {
+//        this.restTemplate = new RestTemplate();
+//    }
+
+//    public List<Street> getStreetsInCity(String cityName){
+//        citiesService.getAndTranslateCities();
+//        return getStreets(cityName);
+//    }
 
     public List<Street> getStreetsInCity(String cityName) {
+        String formattedCityName = Cities.HEBREW_FORMATTED_NAMES.get(cityName);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         Map<String, Object> filters = new HashMap<>();
-        filters.put("city_name", cityName);
+        filters.put("city_name", formattedCityName);
 
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("resource_id", RESOURCE_ID);
