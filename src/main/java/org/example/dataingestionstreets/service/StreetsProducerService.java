@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Service
-public class StreetsService {
+public class StreetsProducerService {
     private final RestTemplate restTemplate;
 
     //    private final CitiesService citiesService;

@@ -2,7 +2,7 @@ package org.example.dataingestionstreets.controller;
 
 import lombok.AllArgsConstructor;
 import org.example.dataingestionstreets.model.Street;
-import org.example.dataingestionstreets.service.StreetsService;
+import org.example.dataingestionstreets.service.StreetsProducerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -13,7 +13,7 @@ import java.util.List;
 @RestController
 public class StreetController {
 
-    private final StreetsService streetsService;
+    private final StreetsProducerService streetsService;
 
     @GetMapping("/")
     public String home() {
