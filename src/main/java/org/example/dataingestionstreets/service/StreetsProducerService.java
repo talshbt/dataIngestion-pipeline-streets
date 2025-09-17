@@ -33,8 +33,13 @@ public class StreetsProducerService {
 
     private final KafkaTemplate<String, List<Street>> kafkaTemplate;
 
+    public void publishStreetsToKafka(String cityName) {
+        var streets = getStreetsInCity(cityName);
+        kafkaTemplate.send(streetsTopic, cityName, streets);
+        System.out.println("Successfully sent " + streets.size() + " streets for " + cityName + " to Kafka topic: " + streetsTopic);
+    }
 
-    public void getStreetsInCity(String cityName) {
+    private List<Street> getStreetsInCity(String cityName) {
         String formattedCityName = Cities.HEBREW_FORMATTED_NAMES.get(cityName);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -56,7 +61,7 @@ public class StreetsProducerService {
         }
 
         // Convert ApiStreet objects to Street objects
-        var streets =  response.getResult().getRecords().stream()
+        return response.getResult().getRecords().stream()
                 .map(apiStreet -> {
                     Street street = new Street();
                     street.setStreetId(apiStreet.getStreetId());
@@ -64,9 +69,6 @@ public class StreetsProducerService {
                     return street;
                 })
                 .collect(Collectors.toList());
-
-        kafkaTemplate.send(streetsTopic, cityName, streets);
-        System.out.println("Successfully sent " + streets.size() + " streets for " + cityName + " to Kafka topic: " + streetsTopic);
     }
 
     public ApiStreet getStreetInfoById(int id) {

@@ -11,7 +11,7 @@ public class StreetController {
     private final StreetsProducerService streetsService;
 
     @PostMapping("/streets")
-    public void getStreetsInCity(@RequestBody String cityName) {
-        streetsService.getStreetsInCity(cityName);
+    public void publishStreetsToKafka(@RequestBody String cityName) {
+        streetsService.publishStreetsToKafka(cityName);
     }
 }
