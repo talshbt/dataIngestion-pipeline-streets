@@ -34,7 +34,7 @@ public class StreetsProducerService {
     private final KafkaTemplate<String, List<Street>> kafkaTemplate;
 
 
-    public List<Street> getStreetsInCity(String cityName) {
+    public void getStreetsInCity(String cityName) {
         String formattedCityName = Cities.HEBREW_FORMATTED_NAMES.get(cityName);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -67,7 +67,6 @@ public class StreetsProducerService {
 
         kafkaTemplate.send(streetsTopic, cityName, streets);
         System.out.println("Successfully sent " + streets.size() + " streets for " + cityName + " to Kafka topic: " + streetsTopic);
-        return streets;
     }
 
     public ApiStreet getStreetInfoById(int id) {
