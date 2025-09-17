@@ -1,6 +1,5 @@
 package org.example.dataingestionstreets.service;
 
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.example.dataingestionstreets.model.Cities;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,9 +13,7 @@ import org.example.dataingestionstreets.model.ApiStreet;
 import org.example.dataingestionstreets.model.Street;
 import org.example.dataingestionstreets.model.StreetInfoResponse;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -41,26 +38,39 @@ public class StreetsProducerService {
 
     private List<Street> getStreetsInCity(String cityName) {
         String formattedCityName = Cities.HEBREW_FORMATTED_NAMES.get(cityName);
+        var entity = buildRequestEntity(formattedCityName);
+
+        StreetInfoResponse response = fetchStreets(entity);
+
+        validateResponse(response, cityName);
+
+        return convertToStreets(response);
+    }
+
+    private HttpEntity<Map<String, Object>> buildRequestEntity(String cityName) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        Map<String, Object> filters = new HashMap<>();
-        filters.put("city_name", formattedCityName);
+        Map<String, Object> filters = Map.of("city_name", cityName);
 
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("resource_id", RESOURCE_ID);
-        requestBody.put("filters", filters);
-        requestBody.put("limit", 100000);
+        Map<String, Object> requestBody = Map.of(
+                "resource_id", RESOURCE_ID,
+                "filters", filters,
+                "limit", 100_000
+        );
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+        return new HttpEntity<>(requestBody, headers);
+    }
 
-        StreetInfoResponse response = restTemplate.postForObject(API_URL, entity, StreetInfoResponse.class);
-
-        if (response == null || response.getResult() == null || response.getResult().getRecords() == null || response.getResult().getRecords().isEmpty()) {
-            throw new RuntimeException("No streets found for city: " + cityName);
+    private StreetInfoResponse fetchStreets(HttpEntity<Map<String, Object>> entity) {
+        try {
+            return restTemplate.postForObject(API_URL, entity, StreetInfoResponse.class);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch streets from API", e);
         }
+    }
 
-        // Convert ApiStreet objects to Street objects
+    private List<Street> convertToStreets(StreetInfoResponse response) {
         return response.getResult().getRecords().stream()
                 .map(apiStreet -> {
                     Street street = new Street();
@@ -70,6 +80,16 @@ public class StreetsProducerService {
                 })
                 .collect(Collectors.toList());
     }
+
+    private void validateResponse(StreetInfoResponse response, String cityName) {
+        if (response == null ||
+                response.getResult() == null ||
+                response.getResult().getRecords() == null ||
+                response.getResult().getRecords().isEmpty()) {
+            throw new RuntimeException("No streets found for city: " + cityName);
+        }
+    }
+
 
     public ApiStreet getStreetInfoById(int id) {
         HttpHeaders headers = new HttpHeaders();
