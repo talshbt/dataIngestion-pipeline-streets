@@ -1,10 +1,13 @@
 package org.example.dataingestionstreets.service;
 
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.example.dataingestionstreets.model.Cities;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.example.dataingestionstreets.model.ApiStreet;
@@ -16,32 +19,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Service
 public class StreetsProducerService {
     private final RestTemplate restTemplate;
+    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
+    @Value("${kafka.topic.streets}")
+    private String streetsTopic;
 
-    //    private final CitiesService citiesService;
     private static final String RESOURCE_ID = "1b14e41c-85b3-4c21-bdce-9fe48185ffca";
     private static final String API_URL = "https://data.gov.il/api/3/action/datastore_search";
     private static final Map<String, String> hebrewToEnglishCityNames = new HashMap<>();
 
-    static {
-        // You need to manually populate this map with Hebrew-to-English city names
-        // based on your original 'enlishNameByCity' map.
-        // For example:
-        // hebrewToEnglishCityNames.put("תל אביב", "Tel Aviv");
-        // hebrewToEnglishCityNames.put("חיפה", "Haifa");
-    }
+    private final KafkaTemplate<String, List<Street>> kafkaTemplate;
 
-//    public StreetsService() {
-//        this.restTemplate = new RestTemplate();
-//    }
-
-//    public List<Street> getStreetsInCity(String cityName){
-//        citiesService.getAndTranslateCities();
-//        return getStreets(cityName);
-//    }
 
     public List<Street> getStreetsInCity(String cityName) {
         String formattedCityName = Cities.HEBREW_FORMATTED_NAMES.get(cityName);
@@ -65,7 +56,7 @@ public class StreetsProducerService {
         }
 
         // Convert ApiStreet objects to Street objects
-        return response.getResult().getRecords().stream()
+        var streets =  response.getResult().getRecords().stream()
                 .map(apiStreet -> {
                     Street street = new Street();
                     street.setStreetId(apiStreet.getStreetId());
@@ -73,6 +64,10 @@ public class StreetsProducerService {
                     return street;
                 })
                 .collect(Collectors.toList());
+
+        kafkaTemplate.send(streetsTopic, cityName, streets);
+        System.out.println("Successfully sent " + streets.size() + " streets for " + cityName + " to Kafka topic: " + streetsTopic);
+        return streets;
     }
 
     public ApiStreet getStreetInfoById(int id) {
