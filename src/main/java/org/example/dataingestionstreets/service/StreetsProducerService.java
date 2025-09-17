@@ -1,6 +1,8 @@
 package org.example.dataingestionstreets.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.dataingestionstreets.client.StreetApiClient;
+import org.example.dataingestionstreets.mapper.StreetMapper;
 import org.example.dataingestionstreets.model.Cities;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -20,6 +22,9 @@ import java.util.stream.Collectors;
 @Service
 public class StreetsProducerService {
     private final RestTemplate restTemplate;
+    private final StreetApiClient apiClient;
+    private final StreetMapper streetMapper;
+
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Value("${kafka.topic.streets}")
     private String streetsTopic;
@@ -38,56 +43,12 @@ public class StreetsProducerService {
 
     private List<Street> getStreetsInCity(String cityName) {
         String formattedCityName = Cities.HEBREW_FORMATTED_NAMES.get(cityName);
-        var entity = buildRequestEntity(formattedCityName);
 
-        StreetInfoResponse response = fetchStreets(entity);
-
-        validateResponse(response, cityName);
-
-        return convertToStreets(response);
-    }
-
-    private HttpEntity<Map<String, Object>> buildRequestEntity(String cityName) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        Map<String, Object> filters = Map.of("city_name", cityName);
-
-        Map<String, Object> requestBody = Map.of(
-                "resource_id", RESOURCE_ID,
-                "filters", filters,
-                "limit", 100_000
-        );
-
-        return new HttpEntity<>(requestBody, headers);
-    }
-
-    private StreetInfoResponse fetchStreets(HttpEntity<Map<String, Object>> entity) {
-        try {
-            return restTemplate.postForObject(API_URL, entity, StreetInfoResponse.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to fetch streets from API", e);
-        }
-    }
-
-    private List<Street> convertToStreets(StreetInfoResponse response) {
-        return response.getResult().getRecords().stream()
-                .map(apiStreet -> {
-                    Street street = new Street();
-                    street.setStreetId(apiStreet.getStreetId());
-                    street.setStreet_name(apiStreet.getStreet_name().trim());
-                    return street;
-                })
+        List<ApiStreet> apiStreets = apiClient.fetchStreetsByCity(formattedCityName);
+        return apiStreets.stream()
+                .map(streetMapper::toStreet)
                 .collect(Collectors.toList());
-    }
 
-    private void validateResponse(StreetInfoResponse response, String cityName) {
-        if (response == null ||
-                response.getResult() == null ||
-                response.getResult().getRecords() == null ||
-                response.getResult().getRecords().isEmpty()) {
-            throw new RuntimeException("No streets found for city: " + cityName);
-        }
     }
 
 
